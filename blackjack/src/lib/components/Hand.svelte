@@ -1,62 +1,49 @@
+<script>
+    import Card from '$lib/components/Card.svelte';
 
-<script lang="ts">
-    import Card from './Card.svelte';
-    import type { Card as CardType } from '$lib/api/deckOfCards';
-
-    let {
-        cards = [] as CardType[],
-        title = '',
-        hideFirstCard = false,
-        score = null as number | null,
-        isTurn = false
-    }: {
-        cards?: CardType[];
-        title?: string;
-        hideFirstCard?: boolean;
-        score?: number | null;
-        isTurn?: boolean;
-    } = $props();
-
+    let { cards = [], isDealerHand = false, gamePhase = 'INIT', isDealing = false } = $props();
 </script>
 
-<div class="hand-container mb-6 p-4 border border-green-600 rounded-lg min-h-[200px] bg-green-800/70 shadow-inner"
-     class:border-yellow-400={isTurn}
-     class:shadow-[0_0_15px_rgba(250,204,21,0.5)]={isTurn}>
-<h3 class="text-xl font-bold mb-4 text-white/90 flex justify-between items-center px-2">
-    <span>{title}</span>
-    {#if score !== null}
-        <span class="text-lg font-mono bg-gray-900/60 text-yellow-300 px-3 py-1 rounded-md shadow">Score: {score}</span>
-    {/if}
-</h3>
-<div class="cards flex flex-wrap justify-center items-center min-h-[120px]">
-    {#if cards.length > 0}
-        {#each cards as card, i (card.code)}
-            <div class="animate-deal-in">
-                <Card card={card} hidden={i === 0 && hideFirstCard} />
-            </div>
-        {/each}
+<div class="cards-container">
+    {#if cards.length === 0}
+        <div class="card-placeholder"></div>
+        <div class="card-placeholder"></div>
     {:else}
-        <p class="text-gray-400 italic text-sm">No cards yet</p>
+        {#each cards as card, index (card.code)}
+            <Card
+                    cardData={card}
+                    isHidden={isDealerHand && index === 0 && gamePhase === 'PLAYER_TURN'}
+                    {isDealing}
+            />
+        {/each}
     {/if}
-</div>
 </div>
 
 <style>
-    @keyframes dealIn {
-        from {
-            opacity: 0;
-            transform: translateY(-25px) scale(0.9);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-        }
+    .cards-container {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 5px;
+        min-height: 110px;
+        padding: 5px;
+        position: relative;
     }
-    .animate-deal-in {
-        animation: dealIn 0.4s ease-out forwards;
+    .card-placeholder {
+        width: 70px;
+        height: 100px;
+        border-radius: 6px;
+        background-color: rgba(255, 255, 255, 0.08);
+        margin: 3px;
+        box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
     }
-
-    .hand-container {
-        transition: border-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    @media (max-width: 768px) {
+        .card-placeholder {
+            width: 55px;
+            height: 78px;
+        }
+        .cards-container {
+            min-height: 85px;
+        }
     }
 </style>

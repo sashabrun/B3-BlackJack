@@ -1,21 +1,11 @@
-/** @typedef { import('$lib/api/deckOfCards').Card } Card */
-
-/**
- * Calcule la valeur d'une main de Blackjack.
- * @param {Card[]} hand Un tableau d'objets carte.
- * @returns {number} La valeur de la main.
- */
-export function calculateHandValue(hand) {
+export function calculateHandValue(cards) {
     let value = 0;
     let aceCount = 0;
 
-    if (!hand || hand.length === 0) {
-        return 0;
-    }
+    if (!Array.isArray(cards)) return 0;
 
-    for (const card of hand) {
+    for (const card of cards) {
         if (!card || !card.value) continue;
-
         const cardValue = card.value;
         if (['KING', 'QUEEN', 'JACK'].includes(cardValue)) {
             value += 10;

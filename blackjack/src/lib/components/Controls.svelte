@@ -1,56 +1,117 @@
 
-<script lang="ts">
+<script>
     import { createEventDispatcher } from 'svelte';
 
-    let {
-        canDeal = false,
-        canHit = false,
-        canStand = false,
-        isLoading = false,
-        dealText = "Deal / New Game"
-    }: {
-        canDeal?: boolean;
-        canHit?: boolean;
-        canStand?: boolean;
-        isLoading?: boolean;
-        dealText?: string;
-    } = $props();
+    let { isLoading = false, gamePhase = 'INIT' } = $props();
 
     const dispatch = createEventDispatcher();
 
-    const btnBaseClass = "px-6 py-3 text-base font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 ease-in-out transform hover:scale-105 disabled:scale-100";
-    const loadingClass = "opacity-75 animate-pulse";
+    let canDeal = $derived((gamePhase === 'INIT' || gamePhase === 'GAME_OVER') && !isLoading);
+    let canHit = $derived(gamePhase === 'PLAYER_TURN' && !isLoading);
+    let canStand = $derived(gamePhase === 'PLAYER_TURN' && !isLoading);
+    let dealButtonText = $derived((gamePhase === 'INIT') ? 'Deal' : 'New Game');
 </script>
 
-<div class="controls flex justify-center items-center space-x-5 my-8 p-4 bg-gray-900/30 rounded-lg">
+<div class="controls">
     <button
-            class="{btnBaseClass} bg-blue-600 text-white hover:bg-blue-500 focus:ring-blue-400 {isLoading && !canHit && !canStand ? loadingClass : ''}"
+            class="control-btn deal"
+            disabled={!canDeal}
             onclick={() => dispatch('deal')}
-            disabled={!canDeal || isLoading}
     >
-        {#if isLoading && !canHit && !canStand}<span class="inline-block animate-spin mr-2">🔄</span>{/if}{isLoading && !canHit && !canStand ? 'Dealing...' : dealText}
+        {dealButtonText}
     </button>
     <button
-            class="{btnBaseClass} bg-yellow-500 text-gray-900 hover:bg-yellow-400 focus:ring-yellow-300 {isLoading && canHit ? loadingClass : ''}"
+            class="control-btn hit"
+            disabled={!canHit}
             onclick={() => dispatch('hit')}
-            disabled={!canHit || isLoading}
     >
-        {#if isLoading && canHit}<span class="inline-block animate-spin mr-2">🔄</span>{/if}{isLoading && canHit ? 'Hitting...' : 'Hit'}
+        Hit
     </button>
     <button
-            class="{btnBaseClass} bg-red-600 text-white hover:bg-red-500 focus:ring-red-400 {isLoading && !canHit && canHit ? loadingClass : ''}"
+            class="control-btn stand"
+            disabled={!canStand}
             onclick={() => dispatch('stand')}
-            disabled={!canStand || isLoading}
     >
-        {#if isLoading && !canHit && canHit}<span class="inline-block animate-spin mr-2">🔄</span>{/if}Stand
+        Stand
     </button>
 </div>
 
 <style>
-    @keyframes spin {
-        to { transform: rotate(360deg); }
+    .controls {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 30px;
+        flex-wrap: wrap;
     }
-    .animate-spin {
-        animation: spin 1s linear infinite;
+
+    .control-btn {
+        padding: 12px 25px;
+        border: none;
+        border-radius: 30px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        min-width: 110px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+        color: white;
+    }
+
+    .control-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #555 !important;
+        color: #aaa !important;
+        box-shadow: none;
+    }
+    .control-btn:disabled::after {
+        display: none;
+    }
+
+    .control-btn::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -60%;
+        width: 20%;
+        height: 200%;
+        background: rgba(255,255,255,0.15);
+        transform: rotate(30deg);
+        transition: all 0.6s ease;
+    }
+
+    .control-btn:hover:not(:disabled)::after {
+        left: 120%;
+    }
+    .control-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+
+    .control-btn.deal {
+        background: linear-gradient(to right, #2980b9, #3498db);
+    }
+    .control-btn.hit {
+        background: linear-gradient(to right, #e67e22, #f39c12);
+    }
+    .control-btn.stand {
+        background: linear-gradient(to right, #c0392b, #e74c3c);
+    }
+
+    @media (max-width: 768px) {
+        .control-btn {
+            padding: 10px 20px;
+            min-width: 90px;
+            font-size: 0.8rem;
+        }
+        .controls {
+            gap: 10px;
+            margin-top: 20px;
+        }
     }
 </style>

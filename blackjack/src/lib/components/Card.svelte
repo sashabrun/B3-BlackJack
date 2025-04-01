@@ -1,21 +1,70 @@
+<script>
+    let { cardData = null, isHidden = false, isDealing = false } = $props();
 
-<script lang="ts">
-    import type { Card as CardType } from '$lib/api/deckOfCards';
+    const cardBackImage = "https://deckofcardsapi.com/static/img/back.png";
 
-    let {
-        card = null as CardType | null,
-        hidden = false
-    } : {
-        card?: CardType | null;
-        hidden?: boolean;
-    } = $props();
+    let dealingClass = $state('');
 
-    const cardBackUrl = 'https://deckofcardsapi.com/static/img/back.png';
+    $effect(() => {
+        if (isDealing) {
+            dealingClass = 'dealing';
+            const timer = setTimeout(() => {
+                dealingClass = '';
+            }, 500);
 
-    let imageUrl = $derived(hidden || !card ? cardBackUrl : card.images.png);
-    let altText = $derived(hidden || !card ? 'Card back' : `${card.value} of ${card.suit}`);
+            return () => {
+                clearTimeout(timer);
+            };
+        }
+    });
 </script>
 
-<div class="card inline-block w-20 h-28 bg-white border border-gray-300 rounded-lg shadow-lg overflow-hidden mx-1.5 my-1 transition-transform duration-300 ease-out hover:scale-105">
-    <img src={imageUrl} alt={altText} class="w-full h-full object-contain" draggable="false" />
+<div class="card {dealingClass}">
+    {#if isHidden || !cardData}
+        <img src={cardBackImage} alt="Card back" />
+    {:else}
+        <img src={cardData.image} alt={`${cardData.value} of ${cardData.suit}`} />
+    {/if}
 </div>
+
+<style>
+    .card {
+        width: 70px;
+        height: 100px;
+        background-color: white;
+        border-radius: 6px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        display: inline-block;
+        margin: 3px;
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.3s ease;
+    }
+    .card:hover {
+        transform: translateY(-6px) rotate(1.5deg);
+        z-index: 10;
+    }
+    img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border-radius: 6px;
+    }
+
+    @keyframes dealAnimation {
+        from { transform: translate(50px, -100px) rotate(20deg) scale(0.5); opacity: 0;}
+        to { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1;}
+    }
+    .card.dealing {
+        animation: dealAnimation 0.4s ease-out;
+    }
+
+    @media (max-width: 768px) {
+        .card {
+            width: 55px;
+            height: 78px;
+            margin: 2px;
+        }
+    }
+</style>

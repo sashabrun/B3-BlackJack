@@ -1,53 +1,114 @@
-
-<script lang="ts">
-    type GameOutcome = 'win' | 'loss' | 'push' | null;
-
+<script>
     let {
         playerScore = 0,
         dealerScore = 0,
-        remainingCards = 0,
-        gameStatus = 'Press "Deal" to start.',
-        deckId = null as string | null,
-        outcome = null as GameOutcome
-    } : {
-        playerScore?: number;
-        dealerScore?: number;
-        remainingCards?: number;
-        gameStatus?: string;
-        deckId?: string | null;
-        outcome?: GameOutcome;
+        dealerVisibleScore = 0,
+        gamePhase = 'INIT',
+        remainingCards = 52,
+        gameStatusMessage = '',
+        gameStatusOutcome = null
     } = $props();
 
-    let baseStatusClass = "text-xl font-bold mb-3 uppercase tracking-wider transition-colors duration-300";
-
-    let animationClass = $derived(
-        outcome === 'win' ? 'animate-pulse-win' :
-            outcome === 'loss' ? 'animate-shake-loss' :
-                outcome === 'push' ? 'animate-simple-fade-in' :
-                    ''
-    );
-
-    let colorClass = $derived(
-        outcome === 'win' ? 'text-green-300' :
-            outcome === 'loss' ? 'text-red-400' :
-                outcome === 'push' ? 'text-yellow-300' :
-                    'text-blue-300'
-    );
+    let displayDealerScore = $derived((gamePhase === 'PLAYER_TURN') ? dealerVisibleScore : dealerScore);
 
 </script>
 
-<div class="scoreboard mb-6 p-5 border border-green-600 rounded-lg bg-gradient-to-b from-gray-800/80 to-gray-900/70 text-white text-center shadow-xl">
-    {#key outcome}
-        <p class="{baseStatusClass} {colorClass} {animationClass}">
-            {gameStatus}
-        </p>
-    {/key}
-    <div class="flex flex-wrap justify-around items-center text-sm text-gray-300 gap-x-4 gap-y-1 mt-2">
-        <span>Cards Left: <span class="font-semibold text-white">{remainingCards}</span></span>
-        {#if deckId}
-            <span class="hidden md:inline">Deck ID: <span class="font-mono text-xs opacity-70">{deckId.substring(0, 8)}...</span></span>
-        {/if}
-        <span class="font-semibold">Player: <span class="text-white">{playerScore}</span></span>
-        <span class="font-semibold">Dealer: <span class="text-white">{dealerScore}</span></span>
+<div class="scoreboard-container">
+    <div class="area dealer-area">
+        <div class="info-header">
+            <span class="label">Dealer</span>
+            <span class="score">{displayDealerScore}</span>
+        </div>
+    </div>
+
+    <div class="mid-section">
+        <div
+                id="game-status-display"
+                class="game-status"
+                class:win={gameStatusOutcome === 'win' || gameStatusOutcome === 'blackjack'}
+                class:loss={gameStatusOutcome === 'loss'}
+                class:push={gameStatusOutcome === 'push'}
+                class:win-pulse={gameStatusOutcome === 'win' || gameStatusOutcome === 'blackjack'}
+        >
+            {gameStatusMessage}
+        </div>
+        <div class="game-info">
+            <span>Cards Left: {remainingCards}</span>
+        </div>
+    </div>
+
+    <div class="area player-area">
+        <div class="info-header">
+            <span class="label">Player</span>
+            <span class="score">{playerScore}</span>
+        </div>
     </div>
 </div>
+
+<style>
+    .scoreboard-container {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+    .area {
+        padding: 10px;
+        border-radius: 10px;
+        background-color: rgba(0,0,0,0.25);
+        min-height: 45px;
+    }
+    .dealer-area { border: 1px solid rgba(230, 198, 86, 0.3); }
+    .player-area { border: 1px solid rgba(139, 233, 253, 0.3); }
+
+    .info-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 5px;
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .dealer-area .label { color: #e6c656; }
+    .player-area .label { color: #8be9fd; }
+    .score {
+        background-color: rgba(0,0,0,0.5);
+        padding: 4px 12px;
+        border-radius: 15px;
+        font-weight: bold;
+        border: 1px solid #444;
+        min-width: 35px;
+        text-align: center;
+    }
+
+    .mid-section {
+        text-align: center;
+        margin: 5px 0;
+    }
+    .game-status {
+        padding: 10px 20px;
+        background-color: rgba(0,0,0,0.5);
+        border-radius: 30px;
+        font-size: 1.1rem;
+        margin: 0 auto 10px auto;
+        max-width: 450px;
+        border: 1px solid #777;
+        min-height: 1.3em; line-height: 1.3em;
+        transition: all 0.3s ease;
+    }
+    .game-status.win, .game-status.blackjack { color: #50fa7b; border-color: #50fa7b; }
+    .game-status.loss { color: #ff5555; border-color: #ff5555; }
+    .game-status.push { color: #f1fa8c; border-color: #f1fa8c; }
+
+    .game-info {
+        font-size: 0.9rem;
+        color: #bbb;
+    }
+
+    @media (max-width: 768px) {
+        .area { min-height: 40px; }
+        .info-header { font-size: 0.9rem; }
+        .score { padding: 3px 10px; font-size: 0.9rem;}
+        .game-status { font-size: 1rem; max-width: 90%; padding: 8px 15px;}
+    }
+</style>

@@ -1,231 +1,179 @@
 
-<script lang="ts">
-    // ... (le reste du script reste identique)
-    import { onMount } from 'svelte';
+<script>
+    import { browser } from '$app/environment';
     import { createNewShuffledDeck, drawCards } from '$lib/api/deckOfCards.js';
     import { calculateHandValue } from '$lib/utils/scoring.js';
     import Hand from '$lib/components/Hand.svelte';
     import Controls from '$lib/components/Controls.svelte';
     import Scoreboard from '$lib/components/Scoreboard.svelte';
-    import type { Card as CardType } from '$lib/api/deckOfCards';
 
-    type GamePhase = 'INIT' | 'PLAYER_TURN' | 'DEALER_TURN' | 'GAME_OVER';
-    type GameOutcome = 'win' | 'loss' | 'push' | null;
+    let deckId = $state(null);
+    let playerCards = $state([]);
+    let dealerCards = $state([]);
+    let playerScore = $state(0);
+    let dealerScore = $state(0);
+    let dealerVisibleScore = $state(0);
+    let gamePhase = $state('INIT');
+    let remainingCards = $state(52);
+    let isLoading = $state(false);
+    let isDealingAnimation = $state(false);
+    let gameStatusMessage = $state('Press Deal to start the game!');
+    let gameStatusOutcome = $state(null);
 
-    let deckId = $state<string | null>(null);
-    let playerCards = $state<CardType[]>([]);
-    let dealerCards = $state<CardType[]>([]);
-    let remainingCards = $state<number>(0);
-    let gameStatus = $state<string>('Press "Deal" to start a new game!');
-    let gamePhase = $state<GamePhase>('INIT');
-    let gameOutcome = $state<GameOutcome>(null);
-    let isLoading = $state<boolean>(false);
-
-    let playerScore = $derived(calculateHandValue(playerCards));
-    let dealerVisibleScore = $derived(gamePhase === 'PLAYER_TURN' ? calculateHandValue(dealerCards.slice(0, 1)) : calculateHandValue(dealerCards));
-    let finalDealerScore = $derived(calculateHandValue(dealerCards));
-
-    let canDeal = $derived(!isLoading && (gamePhase === 'INIT' || gamePhase === 'GAME_OVER'));
-    let canHit = $derived(!isLoading && gamePhase === 'PLAYER_TURN');
-    let canStand = $derived(!isLoading && gamePhase === 'PLAYER_TURN');
-    let dealButtonText = $derived(gamePhase === 'INIT' ? 'Deal Cards' : 'Play Again');
-
-    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-    async function startGame() {
-        isLoading = true;
-        gameOutcome = null;
-        gameStatus = 'Shuffling and Dealing...';
-        playerCards = [];
-        dealerCards = [];
-        gamePhase = 'INIT';
-
-        try {
-            const newDeckId = await createNewShuffledDeck();
-            if (!newDeckId) throw new Error('Failed to create a new deck.');
-            deckId = newDeckId;
-
-            const initialDraw = await drawCards(deckId, 4);
-            if (!initialDraw || initialDraw.cards.length < 4) {
-                if (initialDraw?.remaining === 0) gameStatus = "Deck is empty!";
-                throw new Error('Failed to draw initial cards.');
-            }
-
-            await delay(100);
-
-            playerCards = [initialDraw.cards[0], initialDraw.cards[2]];
-            dealerCards = [initialDraw.cards[1], initialDraw.cards[3]];
-            remainingCards = initialDraw.remaining;
-
-            if (playerScore === 21) {
-                if (finalDealerScore === 21) {
-                    determineWinner('Push! Both have Blackjack!');
-                } else {
-                    determineWinner('Blackjack! Player wins!');
-                }
-            } else if (finalDealerScore === 21) {
-                determineWinner('Dealer has Blackjack! Dealer wins.');
-            } else {
-                gameStatus = "Player's Turn: Hit or Stand?";
-                gamePhase = 'PLAYER_TURN';
-            }
-
-        } catch (error: any) {
-            gameStatus = `Error starting game: ${error.message}`;
-            gamePhase = 'GAME_OVER';
-            deckId = null;
-        } finally {
-            isLoading = false;
-        }
+    function setStatus(message, outcome = null) {
+        gameStatusMessage = message;
+        gameStatusOutcome = outcome;
     }
 
-    async function playerHit() {
-        if (!canHit) return;
-        isLoading = true;
-        gameStatus = 'Hitting...';
-
-        try {
-            const drawResult = await drawCards(deckId!, 1);
-            if (!drawResult || drawResult.cards.length === 0) {
-                if (drawResult?.remaining === 0) gameStatus = "Deck is empty! Cannot hit.";
-                playerStand();
-                return;
-            }
-
-            await delay(100);
-
-            playerCards = [...playerCards, drawResult.cards[0]];
-            remainingCards = drawResult.remaining;
-
-            if (playerScore > 21) {
-                determineWinner('Player Busts! Dealer wins.');
-            } else if (playerScore === 21) {
-                playerStand();
-            } else {
-                gameStatus = "Player's Turn: Hit or Stand?";
-            }
-        } catch (error: any) {
-            gameStatus = `Error during Hit: ${error.message}`;
-            gamePhase = 'GAME_OVER';
-        } finally {
-            isLoading = false;
-        }
+    async function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    function playerStand() {
-        if (!canStand) return;
-        gamePhase = 'DEALER_TURN';
-        gameStatus = "Dealer's Turn...";
-        dealerPlay();
-    }
-
-    async function dealerPlay() {
-        isLoading = true;
-
-        await delay(800);
-
-        while (finalDealerScore < 17) {
-            gameStatus = `Dealer has ${finalDealerScore}. Dealer hits...`;
-            await delay(1000);
-
-            try {
-                const drawResult = await drawCards(deckId!, 1);
-                if (!drawResult || drawResult.cards.length === 0) {
-                    if (drawResult?.remaining === 0) gameStatus = "Deck is empty! Dealer stands.";
-                    break;
-                }
-
-                await delay(100);
-
-                dealerCards = [...dealerCards, drawResult.cards[0]];
-                remainingCards = drawResult.remaining;
-
-            } catch(error: any) {
-                gameStatus = `Error during Dealer's turn: ${error.message}`;
-                gamePhase = 'GAME_OVER';
-                isLoading = false;
-                return;
-            }
-        }
-
-        if (finalDealerScore > 21) {
-            determineWinner('Dealer Busts! Player wins!');
-        } else {
-            if (playerScore > finalDealerScore) {
-                determineWinner(`Player wins! ${playerScore} vs ${finalDealerScore}`);
-            } else if (finalDealerScore > playerScore) {
-                determineWinner(`Dealer wins! ${finalDealerScore} vs ${playerScore}`);
-            } else {
-                determineWinner(`Push! Both have ${playerScore}`);
-            }
-        }
-
-        isLoading = false;
-    }
-
-    function determineWinner(finalStatus: string) {
-        gameStatus = finalStatus;
+    async function _handleGameError(error, context = "Game Error") {
+        console.error(`${context}:`, error);
+        setStatus(`Error: ${error.message}`, 'loss');
         gamePhase = 'GAME_OVER';
-
-        if (playerScore > 21) gameOutcome = 'loss';
-        else if (finalDealerScore > 21) gameOutcome = 'win';
-        else if (playerScore > finalDealerScore) gameOutcome = 'win';
-        else if (finalDealerScore > playerScore) gameOutcome = 'loss';
-        else gameOutcome = 'push';
-
         isLoading = false;
     }
+
+    async function _handleDeckFinish() {
+        setStatus('Deck finished! Shuffling a new one...', 'push');
+        try {
+            deckId = await createNewShuffledDeck();
+            remainingCards = 52;
+            setStatus('New deck ready. Press New Game.', null);
+            gamePhase = 'GAME_OVER';
+        } catch (error) {
+            await _handleGameError(error, "Failed to get new deck after finish");
+        }
+        isLoading = false;
+    }
+
+    async function _dealInitialCards() {
+        isDealingAnimation = true;
+        const drawResult = await drawCards(deckId, 4);
+        remainingCards = drawResult.remaining;
+
+        playerCards = [drawResult.cards[0]]; await sleep(200);
+        dealerCards = [drawResult.cards[1]]; await sleep(200);
+        playerCards = [...playerCards, drawResult.cards[2]]; await sleep(200);
+        dealerCards = [...dealerCards, drawResult.cards[3]];
+
+        playerScore = calculateHandValue(playerCards); dealerScore = calculateHandValue(dealerCards); dealerVisibleScore = calculateHandValue([dealerCards[1]]);
+        isDealingAnimation = false;
+    }
+
+    async function _startGameLogic() {
+        isLoading = true; gamePhase = 'DEALING'; setStatus('Dealing...');
+        playerCards = []; dealerCards = []; playerScore = 0; dealerScore = 0; dealerVisibleScore = 0;
+        try {
+            if (!deckId) { deckId = await createNewShuffledDeck(); remainingCards = 52; }
+            await _dealInitialCards();
+            const playerHasBlackjack = playerScore === 21; const dealerHasBlackjack = dealerScore === 21;
+            if (playerHasBlackjack || (dealerHasBlackjack && dealerCards.length === 2)) {
+                dealerVisibleScore = dealerScore; gamePhase = 'GAME_OVER';
+                if (playerHasBlackjack && dealerHasBlackjack) setStatus('Push! Both have Blackjack!', 'push');
+                else if (playerHasBlackjack) setStatus('Blackjack! You win!', 'blackjack');
+                else setStatus('Dealer has Blackjack! You lose.', 'loss');
+            } else { gamePhase = 'PLAYER_TURN'; setStatus('Your turn: Hit or Stand?'); }
+        } catch (error) {
+            if (error.message === "Deck finished") await _handleDeckFinish(); else await _handleGameError(error, "startGame");
+        } finally { isLoading = false; }
+    }
+
+    async function _playerHitLogic() {
+        if (gamePhase !== 'PLAYER_TURN' || isLoading) return;
+        isLoading = true; setStatus('Hitting...'); isDealingAnimation = true;
+        try {
+            const drawResult = await drawCards(deckId, 1);
+            playerCards = [...playerCards, drawResult.cards[0]]; remainingCards = drawResult.remaining; playerScore = calculateHandValue(playerCards);
+            await sleep(300); isDealingAnimation = false;
+            if (playerScore > 21) { gamePhase = 'GAME_OVER'; setStatus('Bust! You lose.', 'loss'); }
+            else if (playerScore === 21) { setStatus('You have 21! Standing...'); await sleep(500); await _dealerTurnLogic(); }
+            else { setStatus('Your turn: Hit or Stand?'); gamePhase = 'PLAYER_TURN'; }
+        } catch (error) {
+            if (error.message === "Deck finished") await _handleDeckFinish(); else await _handleGameError(error, "playerHit");
+        } finally { isLoading = false; }
+    }
+
+    async function _dealerTurnLogic() {
+        gamePhase = 'DEALER_TURN'; isLoading = true; setStatus("Dealer's turn...");
+        dealerVisibleScore = dealerScore; await sleep(800);
+        try {
+            while (dealerScore < 17) {
+                setStatus(`Dealer has ${dealerScore}. Dealer hits...`); await sleep(1000); isDealingAnimation = true;
+                const drawResult = await drawCards(deckId, 1);
+                dealerCards = [...dealerCards, drawResult.cards[0]]; remainingCards = drawResult.remaining; dealerScore = calculateHandValue(dealerCards); dealerVisibleScore = dealerScore;
+                await sleep(300); isDealingAnimation = false;
+            }
+            await sleep(500);
+            if (dealerScore > 21) setStatus(`Dealer stands with ${dealerScore}. Dealer Busts!`, 'win'); else setStatus(`Dealer stands with ${dealerScore}.`);
+            await sleep(1200);
+            gamePhase = 'GAME_OVER';
+            if (dealerScore > 21) setStatus('Dealer busts! You win!', 'win');
+            else if (playerScore > dealerScore) setStatus(`You win! ${playerScore} beats ${dealerScore}`, 'win');
+            else if (dealerScore > playerScore) setStatus(`Dealer wins with ${dealerScore} vs ${playerScore}`, 'loss');
+            else setStatus(`Push! Both have ${playerScore}`, 'push');
+        } catch (error) {
+            if (error.message === "Deck finished") { setStatus('Deck finished during dealer turn. Hand is a Push.', 'push'); gamePhase = 'GAME_OVER'; isLoading = false; await _handleDeckFinish(); }
+            else await _handleGameError(error, "dealerTurn");
+        } finally { isLoading = false; }
+    }
+
+    async function _playerStandLogic() {
+        if (gamePhase !== 'PLAYER_TURN' || isLoading) return;
+        await _dealerTurnLogic();
+    }
+
+    let startGameHandler = $state(() => { console.log("Start Game (noop - client script not ready?)"); setStatus('Initializing...');});
+    let playerHitHandler = $state(() => { console.log("Hit (noop - client script not ready?)"); });
+    let playerStandHandler = $state(() => { console.log("Stand (noop - client script not ready?)"); });
+
+    $effect(() => {
+        if (browser) {
+            startGameHandler = _startGameLogic;
+            playerHitHandler = _playerHitLogic;
+            playerStandHandler = _playerStandLogic;
+
+            console.log("Client-side handlers assigned.");
+            // if (!deckId) {
+            //    createNewShuffledDeck().then(id => deckId = id).catch(e => _handleGameError(e, "Initial Deck Load"));
+            // }
+        }
+    });
+
 </script>
 
-<main class="container mx-auto p-4 sm:p-6 md:p-8 min-h-screen bg-green-700 rounded-b-xl shadow-2xl max-w-4xl">
-    <h1 class="text-4xl sm:text-5xl font-black text-center my-6 sm:my-8 text-yellow-300 tracking-wide uppercase" style="text-shadow: 2px 2px 0px rgba(0,0,0,0.4), 4px 4px 0px rgba(0,0,0,0.2);">
-        Blackjack Arena
-    </h1>
+<div class="game-area">
 
     <Scoreboard
             playerScore={playerScore}
-            dealerScore={dealerVisibleScore}
+            dealerScore={dealerScore}
+            dealerVisibleScore={dealerVisibleScore}
+            gamePhase={gamePhase}
             remainingCards={remainingCards}
-            gameStatus={gameStatus}
-            deckId={deckId}
-            outcome={gameOutcome}
+            gameStatusMessage={gameStatusMessage}
+            gameStatusOutcome={gameStatusOutcome}
     />
 
-    <div class="game-area mt-8">
-        <Hand
-                title="Dealer's Hand"
-                cards={dealerCards}
-                hideFirstCard={gamePhase === 'PLAYER_TURN'}
-                score={dealerVisibleScore}
-                isTurn={gamePhase === 'DEALER_TURN'}
-        />
-        <Hand
-                title="Player's Hand"
-                cards={playerCards}
-                score={playerScore}
-                isTurn={gamePhase === 'PLAYER_TURN'}
-        />
-    </div>
+    <Hand cards={dealerCards} {gamePhase} isDealerHand={true} {isDealingAnimation}/>
+
+    <Hand cards={playerCards} {gamePhase} {isDealingAnimation}/>
 
     <Controls
-            canDeal={canDeal}
-            canHit={canHit}
-            canStand={canStand}
-            isLoading={isLoading}
-            dealText={dealButtonText}
-            on:deal={startGame}
-            on:hit={playerHit}
-            on:stand={playerStand}
+            {isLoading}
+            {gamePhase}
+            on:deal={startGameHandler}
+            on:hit={playerHitHandler}
+            on:stand={playerStandHandler}
     />
 
-    <footer class="text-center text-xs text-green-200/70 mt-10 pb-4">
-        Powered by <a href="https://deckofcardsapi.com/" target="_blank" rel="noopener noreferrer" class="hover:text-yellow-300 underline">Deck of Cards API</a> | SvelteKit & TailwindCSS
-    </footer>
-
-</main>
+</div>
 
 <style>
-    main {
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3), inset 0 0 10px rgba(0,0,0,0.2);
+    .game-area {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
     }
 </style>
