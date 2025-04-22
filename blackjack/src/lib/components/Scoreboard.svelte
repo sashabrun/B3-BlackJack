@@ -1,4 +1,14 @@
-<script>
+<script lang="ts">
+    interface ScoreboardProps {
+        playerScore: number;
+        dealerScore: number;
+        dealerVisibleScore: number;
+        gamePhase: string;
+        remainingCards: number;
+        gameStatusMessage: string;
+        gameStatusOutcome: string | null;
+    }
+
     let {
         playerScore = 0,
         dealerScore = 0,
@@ -7,10 +17,9 @@
         remainingCards = 52,
         gameStatusMessage = '',
         gameStatusOutcome = null
-    } = $props();
+    } = $props<ScoreboardProps>();
 
     let displayDealerScore = $derived((gamePhase === 'PLAYER_TURN') ? dealerVisibleScore : dealerScore);
-
 </script>
 
 <div class="scoreboard-container">

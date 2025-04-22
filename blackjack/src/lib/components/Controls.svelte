@@ -1,10 +1,18 @@
-
-<script>
+<script lang="ts">
     import { createEventDispatcher } from 'svelte';
 
-    let { isLoading = false, gamePhase = 'INIT' } = $props();
+    interface ControlsProps {
+        isLoading: boolean;
+        gamePhase: string;
+    }
 
-    const dispatch = createEventDispatcher();
+    let { isLoading = false, gamePhase = 'INIT' } = $props<ControlsProps>();
+
+    const dispatch = createEventDispatcher<{
+        deal: void;
+        hit: void;
+        stand: void;
+    }>();
 
     let canDeal = $derived((gamePhase === 'INIT' || gamePhase === 'GAME_OVER') && !isLoading);
     let canHit = $derived(gamePhase === 'PLAYER_TURN' && !isLoading);

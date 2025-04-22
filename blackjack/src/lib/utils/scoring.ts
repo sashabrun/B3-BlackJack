@@ -1,4 +1,12 @@
-export function calculateHandValue(cards) {
+// Define the Card type for better type safety
+export interface Card {
+    code: string;
+    value: string;
+    suit: string;
+    image: string;
+}
+
+export function calculateHandValue(cards: Card[]): number {
     let value = 0;
     let aceCount = 0;
 

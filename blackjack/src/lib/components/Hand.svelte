@@ -1,7 +1,15 @@
-<script>
+<script lang="ts">
     import Card from '$lib/components/Card.svelte';
+    import type { Card as CardType } from '$lib/api/deckOfCards';
 
-    let { cards = [], isDealerHand = false, gamePhase = 'INIT', isDealing = false } = $props();
+    interface HandProps {
+        cards: CardType[];
+        isDealerHand: boolean;
+        gamePhase: string;
+        isDealing: boolean;
+    }
+
+    let { cards = [], isDealerHand = false, gamePhase = 'INIT', isDealing = false } = $props<HandProps>();
 </script>
 
 <div class="cards-container">
