@@ -8,6 +8,10 @@
     function navigateToPlay() {
         goto('/play');
     }
+
+    function navigateToSignup() {
+        goto('/signup');
+    }
 </script>
 
 <div class="home-container">
@@ -27,7 +31,7 @@
         </div>
 
         <div class="action-buttons">
-            <button class="action-btn signup" on:click={navigateToPlay}>S'inscrire</button>
+            <button class="action-btn signup" on:click={navigateToSignup}>S'inscrire</button>
             <button class="action-btn login" on:click={navigateToPlay}>Se connecter</button>
         </div>
     </div>
