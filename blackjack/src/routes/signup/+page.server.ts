@@ -3,7 +3,7 @@ import type { Actions } from '@sveltejs/kit';
 import { validateSignup, createUser } from '$lib/server/auth';
 
 export const actions: Actions = {
-    default: async ({ request }) => {
+    default: async ({ request, cookies }) => {
         let formData;
         let data = {
             pseudo: '',
@@ -22,17 +22,9 @@ export const actions: Actions = {
                 confirmPassword: formData.get('confirmPassword')?.toString() || ''
             };
 
-            console.log('Form submission received:', {
-                pseudo: data.pseudo,
-                email: data.email,
-                hasPassword: !!data.password,
-                hasConfirmPassword: !!data.confirmPassword
-            });
-
             const validationResult = await validateSignup(data);
 
             if (!validationResult.success) {
-                console.log('Validation failed:', validationResult.errors);
                 return fail(400, {
                     data: {
                         pseudo: data.pseudo,
@@ -42,9 +34,7 @@ export const actions: Actions = {
                 });
             }
 
-            console.log('Validation passed, creating user');
             const user = await createUser(data);
-            console.log('User created successfully:', { id: user.id });
 
             throw redirect(303, '/play');
         } catch (error) {

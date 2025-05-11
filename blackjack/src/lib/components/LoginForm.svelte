@@ -1,10 +1,8 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
 
-    let pseudo = '';
     let email = '';
     let password = '';
-    let confirmPassword = '';
     let submitting = false;
     let formErrors: Record<string, string> = {};
 
@@ -13,16 +11,14 @@
         formErrors = {};
 
         try {
-            const response = await fetch('/api/signup', {
+            const response = await fetch('/api/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    pseudo,
                     email,
-                    password,
-                    confirmPassword
+                    password
                 })
             });
 
@@ -31,11 +27,11 @@
             if (result.success) {
                 goto('/play');
             } else {
-                formErrors = result.errors;
+                formErrors = result.errors || { form: 'Identifiants incorrects' };
                 submitting = false;
             }
         } catch (error) {
-            console.error('Erreur lors de la soumission du formulaire:', error);
+            console.error('Erreur lors de la connexion:', error);
             formErrors = {
                 form: 'Une erreur inattendue est survenue. Veuillez réessayer.'
             };
@@ -44,31 +40,14 @@
     }
 </script>
 
-<form on:submit|preventDefault={handleSubmit} class="signup-form">
-    <h2 class="form-title">Créer un compte</h2>
+<form on:submit|preventDefault={handleSubmit} class="login-form">
+    <h2 class="form-title">Connexion</h2>
 
     {#if formErrors.form}
         <div class="error-message form-error">
             {formErrors.form}
         </div>
     {/if}
-
-    <div class="form-group">
-        <label for="pseudo">Pseudo</label>
-        <input
-            type="text"
-            id="pseudo"
-            name="pseudo"
-            bind:value={pseudo}
-            class:error={!!formErrors.pseudo}
-            autocomplete="username"
-            disabled={submitting}
-            required
-        />
-        {#if formErrors.pseudo}
-            <div class="error-message">{formErrors.pseudo}</div>
-        {/if}
-    </div>
 
     <div class="form-group">
         <label for="email">Email</label>
@@ -95,41 +74,22 @@
             name="password"
             bind:value={password}
             class:error={!!formErrors.password}
-            autocomplete="new-password"
+            autocomplete="current-password"
             disabled={submitting}
-            placeholder="Minimum 6 caractères"
             required
-            minlength="6"
         />
         {#if formErrors.password}
             <div class="error-message">{formErrors.password}</div>
         {/if}
     </div>
 
-    <div class="form-group">
-        <label for="confirmPassword">Confirmer le mot de passe</label>
-        <input
-            type="password"
-            id="confirmPassword"
-            name="confirmPassword"
-            bind:value={confirmPassword}
-            class:error={!!formErrors.confirmPassword}
-            autocomplete="new-password"
-            disabled={submitting}
-            required
-        />
-        {#if formErrors.confirmPassword}
-            <div class="error-message">{formErrors.confirmPassword}</div>
-        {/if}
-    </div>
-
     <button type="submit" class="submit-button" disabled={submitting}>
-        {submitting ? 'Création en cours...' : 'Créer mon compte'}
+        {submitting ? 'Connexion en cours...' : 'Se connecter'}
     </button>
 </form>
 
 <style>
-    .signup-form {
+    .login-form {
         background-color: rgba(0,0,0,0.3);
         border-radius: 15px;
         padding: 30px;
@@ -250,7 +210,7 @@
     }
 
     @media (max-width: 768px) {
-        .signup-form {
+        .login-form {
             padding: 20px;
             max-width: 95%;
         }

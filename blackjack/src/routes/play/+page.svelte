@@ -6,6 +6,7 @@
     import Controls from '$lib/components/Controls.svelte';
     import Scoreboard from '$lib/components/Scoreboard.svelte';
     import { goto } from '$app/navigation';
+    import { page } from '$app/stores';
 
     type GamePhase = 'INIT' | 'DEALING' | 'PLAYER_TURN' | 'DEALER_TURN' | 'GAME_OVER';
     type GameOutcome = 'win' | 'loss' | 'push' | 'blackjack' | null;
@@ -22,6 +23,23 @@
     let isDealingAnimation = $state<boolean>(false);
     let gameStatusMessage = $state<string>('Press Deal to start the game!');
     let gameStatusOutcome = $state<GameOutcome>(null);
+
+    async function handleLogout() {
+        try {
+            const response = await fetch('/api/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                goto('/');
+            }
+        } catch (error) {
+            console.error('Erreur lors de la déconnexion:', error);
+        }
+    }
 
     function navigateToRules() {
         goto('/rules');
@@ -183,7 +201,7 @@
 </script>
 
 <div class="game-header">
-    <button class="nav-button home" on:click={navigateToHome}>Accueil</button>
+    <button class="nav-button logout" on:click={handleLogout}>Déconnexion</button>
     <h2 class="game-title">Blackjack</h2>
     <button class="nav-button rules" on:click={navigateToRules}>Règles</button>
 </div>

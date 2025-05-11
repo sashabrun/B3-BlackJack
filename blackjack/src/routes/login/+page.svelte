@@ -1,26 +1,26 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
-    import SignupForm from '$lib/components/SignupForm.svelte';
+    import LoginForm from '$lib/components/LoginForm.svelte';
 
     function navigateToHome() {
         goto('/');
     }
 
-    function navigateToLogin() {
-        goto('/login');
+    function navigateToSignup() {
+        goto('/signup');
     }
 </script>
 
-<div class="signup-container">
+<div class="login-container">
     <div class="nav-buttons">
         <button class="nav-button home" on:click={navigateToHome}>Accueil</button>
-        <button class="nav-button login" on:click={navigateToLogin}>Se connecter</button>
+        <button class="nav-button signup" on:click={navigateToSignup}>S'inscrire</button>
     </div>
 
-    <SignupForm />
+    <LoginForm />
 
-    <div class="login-prompt">
-        <p>Déjà un compte ? <button class="link-button" on:click={navigateToLogin}>Se connecter</button></p>
+    <div class="signup-prompt">
+        <p>Pas encore de compte ? <button class="link-button" on:click={navigateToSignup}>Créer un compte</button></p>
     </div>
 
     <div class="decorations">
@@ -32,7 +32,7 @@
 </div>
 
 <style>
-    .signup-container {
+    .login-container {
         display: flex;
         flex-direction: column;
         position: relative;
@@ -65,7 +65,7 @@
         background: linear-gradient(to right, #a0522d, #cd853f);
     }
 
-    .login-prompt {
+    .signup-prompt {
         text-align: center;
         margin-top: 20px;
         color: #e2e2e2;
