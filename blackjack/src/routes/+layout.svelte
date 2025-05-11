@@ -22,10 +22,11 @@
     }
 
     const isLoggedIn = $derived($page.data.userId !== undefined);
+    const isPlayPage = $derived($page.url.pathname === '/play');
 </script>
 
 <div class="layout">
-    {#if isLoggedIn}
+    {#if isLoggedIn && !isPlayPage}
         <div class="logout-container">
             <button class="logout-button" on:click={handleLogout}>Déconnexion</button>
         </div>
