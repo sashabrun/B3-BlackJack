@@ -6,7 +6,7 @@
     }
 
     function navigateToPlay() {
-        goto('/play');
+        goto('/login');
     }
 </script>
 
